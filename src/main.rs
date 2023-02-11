@@ -25,7 +25,7 @@ async fn main() {
             )
         }))
         .route(
-            "/twark/",
+            "/auth/",
             get(|query: Query<std::collections::HashMap<String,String>>| async move {
                 if let Some(code) = query.0.get("code"){
                     (
