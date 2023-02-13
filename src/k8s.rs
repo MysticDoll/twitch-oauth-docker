@@ -89,6 +89,7 @@ pub(crate) async fn add_secret(twitch_token: &str) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())
         .and_then(|r| {
+            println!("{?}", r);
             if !r.status().is_success() {
                 Err("request failed".to_owned())
             } else {
