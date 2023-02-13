@@ -1,6 +1,9 @@
 use reqwest::{
     ClientBuilder,
 };
+use base64::{Engine as _, engine::{self, general_purpose}, alphabet};
+const CUSTOM_ENGINE: engine::GeneralPurpose =
+    engine::GeneralPurpose::new(&alphabet::URL_SAFE, general_purpose::NO_PAD);
 
 pub(crate) async fn add_secret(twitch_token: &str) -> Result<(), String> {
     let cluster_url = std::env::var("K8S_CLUSTER_URL").unwrap_or("".to_owned());
@@ -59,6 +62,9 @@ pub(crate) async fn add_secret(twitch_token: &str) -> Result<(), String> {
         )
     };
 
+    let mut base64_encoded = String::new();
+    general_purpose::STANDARD.encode_string(twitch_token.to_string(), &mut base64_encoded);
+
     request = request
         .header("Content-Type", "application/json")
         .header(
@@ -79,7 +85,7 @@ pub(crate) async fn add_secret(twitch_token: &str) -> Result<(), String> {
                     \"data\":
                     {{ \"token\": \"{}\" }}
                  }}",
-                twitch_token
+                base64_encoded
             )
         );
 
@@ -89,7 +95,7 @@ pub(crate) async fn add_secret(twitch_token: &str) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())
         .and_then(|r| {
-            println!("{?}", r);
+            println!("{:?}", r);
             if !r.status().is_success() {
                 Err("request failed".to_owned())
             } else {

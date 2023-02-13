@@ -4,8 +4,14 @@ use axum::{
     http::StatusCode,
     extract::Query
 };
+use serde::Deserialize;
 
 mod k8s;
+
+#[derive(Deserialize)]
+struct TokenResponse {
+    pub access_token: String,
+}
 
 #[tokio::main]
 async fn main() {
@@ -70,8 +76,12 @@ async fn get_access_token(code: &str, client_id: &str, client_secret: &str, redi
         ])
         .send()
         .await {
-            let text = res.text().await.unwrap_or("error".to_owned());
-            text
+            let json: Option<TokenResponse> = res.json().await.unwrap_or(None);
+            if json.is_some() {
+                json.unwrap().access_token
+            } else {
+                "token response error".to_owned()
+            }
 
         } else {
             "request error".to_owned()
