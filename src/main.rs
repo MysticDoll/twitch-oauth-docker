@@ -5,6 +5,8 @@ use axum::{
     extract::Query
 };
 
+mod k8s;
+
 #[tokio::main]
 async fn main() {
     let client_id = std::env::var("CLIENT_ID").unwrap_or("".to_owned());
@@ -28,10 +30,18 @@ async fn main() {
             "/auth/",
             get(|query: Query<std::collections::HashMap<String,String>>| async move {
                 if let Some(code) = query.0.get("code"){
-                    (
-                        StatusCode::OK,
-                        get_access_token(&code, &client_id, &client_secret, &redirect_uri).await
-                    )
+                    let access_token = get_access_token(&code, &client_id, &client_secret, &redirect_uri).await;
+                    if let Err(e) = crate::k8s::add_secret(&access_token).await {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            e
+                        )
+                    } else {
+                        (
+                            StatusCode::OK,
+                            "success to store to k8s secret".to_owned()
+                        )
+                    }
                 } else {
                     (
                         StatusCode::BAD_REQUEST,
