@@ -36,16 +36,23 @@ async fn main() {
             "/auth/",
             get(|query: Query<std::collections::HashMap<String,String>>| async move {
                 if let Some(code) = query.0.get("code"){
-                    let access_token = get_access_token(&code, &client_id, &client_secret, &redirect_uri).await;
-                    if let Err(e) = crate::k8s::add_secret(&access_token).await {
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            e
-                        )
+                    let access_token_res = get_access_token(&code, &client_id, &client_secret, &redirect_uri).await;
+                    if let Ok(access_token) = access_token_res {
+                        if let Err(e) = crate::k8s::add_secret(&access_token).await {
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                e
+                            )
+                        } else {
+                            (
+                                StatusCode::OK,
+                                "success to store to k8s secret".to_owned()
+                            )
+                        }
                     } else {
                         (
-                            StatusCode::OK,
-                            "success to store to k8s secret".to_owned()
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            access_token_res.err().unwrap()
                         )
                     }
                 } else {
@@ -63,7 +70,7 @@ async fn main() {
         .unwrap();
 }
 
-async fn get_access_token(code: &str, client_id: &str, client_secret: &str, redirect_uri: &str) -> String {
+async fn get_access_token(code: &str, client_id: &str, client_secret: &str, redirect_uri: &str) -> Result<String, String> {
     let url = "https://id.twitch.tv/oauth2/token";
 
     if let Ok(res) = reqwest::Client::new().post(url)
@@ -78,12 +85,12 @@ async fn get_access_token(code: &str, client_id: &str, client_secret: &str, redi
         .await {
             let json: Option<TokenResponse> = res.json().await.unwrap_or(None);
             if json.is_some() {
-                json.unwrap().access_token
+                Ok(json.unwrap().access_token)
             } else {
-                "token response error".to_owned()
+                Err("token response error".to_owned())
             }
 
         } else {
-            "request error".to_owned()
+            Err("request error".to_owned())
         }
 }
