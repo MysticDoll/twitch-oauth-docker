@@ -42,6 +42,9 @@ pub(crate) async fn add_secret(twitch_token: &str) -> Result<(), String> {
     client
         .send()
         .await
-        .map(|_| ())
+        .map(|i| {
+            println!("{:?}", i);
+            ()
+        })
         .map_err(|e| e.to_string())
 }
