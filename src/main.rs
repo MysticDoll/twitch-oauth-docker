@@ -18,10 +18,12 @@ async fn main() {
     let client_id = std::env::var("CLIENT_ID").unwrap_or("".to_owned());
     let client_secret = std::env::var("CLIENT_SECRET").unwrap_or("".to_owned());
     let redirect_uri = std::env::var("REDIRECT_URI").unwrap_or("".to_owned());
+    let scope = std::env::var("API_SCOPE").unwrap_or("chat:read+chat:edit+channel:read:redemptions".to_owned());
     let oauth_url = format!(
-        "https://id.twitch.tv/oauth2/authorize?client_id={}&redirect_uri={}&response_type=code&scope=chat:read+chat:edit+channel:read:redemptions",
+        "https://id.twitch.tv/oauth2/authorize?client_id={}&redirect_uri={}&response_type=code&scope={}",
         &client_id,
-        &redirect_uri
+        &redirect_uri,
+        &scope
     );
     let app = Router::new()
         .route("/", get(|| async {
